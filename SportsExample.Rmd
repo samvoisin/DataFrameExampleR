@@ -1,0 +1,149 @@
+---
+title: "Data Frame Example: Sports"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+I start by generating some random data. Because we are dealing with scores, I draw samples at random from two Poisson distributions in which the mean score of the second round is greater than the mean of the first round. Perhaps a player performs better after warming up in the first round.
+
+The `str` command displays the structure of the dataframe. You should use this to check that your data frame is constructed as you intended. We have two `Factor` variables and two `int` variables.
+
+```{r data}
+set.seed(100) # set random seed
+# This is basically where the "radom process" starts
+# Setting this to an integer means that we get the same results everytime.
+
+sptDat <- data.frame(
+  name = c("Jeff", "Silvia", "Collin", "Maggie", "Alex", "Mary", "Dave"),
+  sport = c("hockey", "hockey", "soccer", "soccer",
+            "soccer", "hockey", "hockey"),
+  round1 = rpois(7, 1.5),
+  round2 = rpois(7, 2.3)
+)
+
+str(sptDat)
+
+```
+ 
+The first task is splitting the data frame based on the `sport` column. There are several ways to do this. Here are a few using base R:
+
+*1) Logical subsetting:*
+
+We want to select only the rows where `sptDat$sport == hockey` evaluates to `TRUE`. Let's take a look at what the logical statement looks like for our data.
+
+```{r spltlogic}
+
+# what does the result of the logical condition look like?
+sptDat$sport == "hockey"
+
+```
+
+Now we can put this statement to use. Notice the comma in the brackets we use to subset the data. Placing the condition before the comma specifies that we want to filter rows. If we were to put some condition after the comma we would be specifying specific columns. We can do both simultaneously if we so choose. Play around with this. What happens when we don't add a comma at all?
+
+```{r split1}
+
+# splitting the data via logical subsetting
+hockDat <- sptDat[sptDat$sport == "hockey", ]
+soccDat <- sptDat[sptDat$sport == "soccer", ]
+
+hockDat
+soccDat
+
+```
+
+*2) Subsetting with `which`*
+
+We can also use the `which` function to do subsetting. We make a similar logical statement here, but instead of feeding it into the brackets around the data frame, we provide it as an input to `which`. Note the output compared to the output of the logical statement alone (i.e. the output of `sptDat$sport == "hockey"` vs `which(sptDat$sport == "hockey")` ).
+
+```{r which}
+
+hockRows <- which(sptDat$sport == "hockey")
+soccRows <- which(sptDat$sport == "soccer")
+
+hockRows
+soccRows
+
+```
+
+Now feed the newly created `hockRows` and `soccRows` variables into the data frame:
+
+```{r split2}
+
+hockDat <- sptDat[hockRows, ]
+soccDat <- sptDat[soccRows, ]
+
+hockDat
+soccDat
+
+```
+
+We can also accomplish the above by removing the rows we *don't* want. This is accomplished by negating the values of the numeric vector produced by the `which` function.
+
+```{r split3}
+
+hockDat <- sptDat[-soccRows, ]
+soccDat <- sptDat[-hockRows, ]
+
+hockDat
+soccDat
+
+```
+
+Take a second to think about how these methods differ. What does that tell you about how R interprets subsetting?
+
+*3) Using the `subset` function*
+
+The last method I will discuss is the `subset` function. This seems like a logical place to start this conversation, but I saved it for last because there is valuable insight to be gained into the inner workings of R through the first two methods.
+
+The `subset` function filters a number of objects including vectors, matrices, and data frames. For our purposes it takes has two parameters: The first argument `x` is the original data frame. The second argument `subset` specifies how you want to subset the frame. I am using the same logical statement we have used above. However, there are many valid arguments. Play around with this function to see what works and what doesn't. You can type `?subset` into your console to get help.
+
+```{r split4}
+
+hockDat <- subset(sptDat, subset = sport == "hockey")
+soccDat <- subset(sptDat, subset = sport == "soccer")
+
+hockDat
+soccDat
+
+```
+
+The next task is to average each player's score over the two rounds. There is one function here that I really want to highlight. The `apply` function comes from a family of powerful functions. Similar functions are `lapply`, `tapply`, `sapply`, etc. Type `?apply` into your console for more information on these.
+
+The purpose of `apply` is to apply a function over an array such as a data frame. Here are the parameters of interest to us:
+1) We first specify the object on which we want to operate. Notice how I have used subsetting to reference only the `round1` and `round2` *columns* this time. What does this mean for the input of the `apply` function? What type of object is going to be operated on? 
+2) The second parameter is `MARGIN`. This parameter tells R whether we want to average over the rows (`1`) or columns (`2`) of the array. We want a player's average over both rounds, so we input `1`. If we wanted to know the average of all players per round we would specify columns by inputting `2`.
+3) The third parameter of interest is `FUN` which is the function you want to apply to the rows of the dataframe. We will to use the `mean` function. You should try this with a few other functions. Note that you can add additional arguments after the `FUN` parameter. These additional arguments will be passed to the function you are using. For example, `apply(sptDat[, 3:4], 1, mean, na.rm = TRUE)` allows us to take an average over the score columns ignoring any `NA` values that may appear. Normally the `mean` function looks something like this: `mean(c(1, 2, 3), na.rm = FALSE, ...)`.
+
+
+```{r apply}
+
+playerAvgs <- apply(sptDat[, 3:4], 1, mean)
+
+playerAvgs
+
+```
+
+Finally we want to take our newly created vector `playerAvgs` and append it as a column to `sptDat`. This is a straightforward task and only requires that we know how to reference a particular column of a data frame. In the same way that we can reference an existing column like we did with `sptDat$sport`, we can create a new column `sptDat$avgScore` in which we store our `playerAvgs` values.
+
+```{r newcol}
+
+sptDat$avgScore <- playerAvgs
+
+sptDat
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
